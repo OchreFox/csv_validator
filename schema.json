@@ -1,0 +1,76 @@
+[
+    {
+        "name": "Name",
+        "type": "string",
+        "options": {
+            "required": true,
+            "min_length": 1,
+            "max_length": 50,
+            "allowed_values": [
+                "John",
+                "Mike"
+            ],
+            "regex": "^[a-zA-Z0-9]+$"
+        }
+    },
+    {
+        "name": "Age",
+        "type": "integer",
+        "options": {
+            "required": true,
+            "min_value": 1,
+            "max_value": 100
+        }
+    },
+    {
+        "name": "Height",
+        "type": "float",
+        "options": {
+            "required": true,
+            "min_value": 1,
+            "max_value": 100,
+            "precision": 2
+        }
+    },
+    {
+        "name": "Student",
+        "type": "boolean",
+        "options": {
+            "required": true,
+            "allowed_values": [
+                "True",
+                "False"
+            ]
+        }
+    },
+    {
+        "name": "Date of Birth",
+        "type": "datetime",
+        "options": {
+            "required": true,
+            "min_value": "01/01/1900",
+            "max_value": "01/01/2021",
+            "format": "%d/%m/%Y"
+        }
+    },
+    {
+        "name": "Hobbies",
+        "type": "array",
+        "options": {
+            "required": true,
+            "min_length": 1,
+            "max_length": 10,
+            "allowed_values": [
+                "Football",
+                "Basketball"
+            ]
+        }
+    },
+    {
+        "name": "Address",
+        "type": "object",
+        "options": {
+            "required": true
+        }
+    }
+]
