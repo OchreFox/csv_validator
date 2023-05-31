@@ -41,29 +41,36 @@ def read_parquet_file(parquet_file: str) -> pd.DataFrame:
         sys.exit(1)
 
 
-# Function to join two dataframes
-# - df1: first dataframe
-# - df2: second dataframe
-# - join: type of join to perform
-# - join_columns: columns to join
-# - return: Returns the cross validated dataframe
 def join_dataframes(
     df1: pd.DataFrame, df2: pd.DataFrame, join: str, join_columns: list
 ) -> pd.DataFrame:
+    """
+    Function to join two dataframes
+    - Args:
+        - `df1`: first dataframe
+        - `df2`: second dataframe
+        - `join`: type of join to perform
+        - `join_columns`: columns to join
+    - Returns: the joined dataframe
+    """
     df1 = df1[join_columns]
     df2 = df2[join_columns]
     df = pd.merge(df1, df2, how=join, on=join_columns)
     return df
 
 
-# Function to cross validate two dataframes
 # Mainly used to cross validate the data from the CSV file with the data from the database
 # It will perform a left anti join between the two dataframes and will return the rows that are not present in the database
-# - df1: first dataframe
-# - df2: second dataframe
-# - join_columns: columns to join
-# - return: Returns the cross validated dataframe
 def cross_validate_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, join_columns: list):
+    """
+    Function to cross validate two dataframes.
+    - Args:
+        - `df1`: first dataframe
+        - `df2`: second dataframe
+        - `join_columns`: columns to join
+    - Returns: the cross validated dataframe
+    """
+
     df = join_dataframes(
         df1,
         df2,
@@ -73,14 +80,6 @@ def cross_validate_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, join_columns
     return df
 
 
-# Function to validate the sum of a column in two dataframes
-# - df1: first dataframe
-# - df2: second dataframe
-# - sum_column1: column to sum in the first dataframe
-# - sum_column2: column to sum in the second dataframe
-# - where1: where clause for the first dataframe
-# - where2: where clause for the second dataframe
-# - return: Returns True if the sum of the column is the same in both dataframes, False otherwise
 def validate_sum(
     df1: pd.DataFrame,
     df2: pd.DataFrame,
@@ -89,6 +88,20 @@ def validate_sum(
     where1: Optional[str] = None,
     where2: Optional[str] = None,
 ) -> bool:
+    """
+    Function to validate the sum of a column in two dataframes
+    - Args:
+        - `df1`: first dataframe
+        - `df2`: second dataframe
+        - `sum_column1`: column to sum in the first dataframe
+        - `sum_column2`: column to sum in the second dataframe
+        - `where1`: where clause for the first dataframe
+        - `where2`: where clause for the second dataframe
+    - Returns:
+        - `True` if the sum of the column is the same in both dataframes
+        - `False` otherwise
+    """
+
     if where1 is not None:
         df1 = df1.query(where1)
     if where2 is not None:
@@ -102,14 +115,6 @@ def validate_sum(
     return sum1 == sum2
 
 
-# Function to validate the count of a column in two dataframes
-# - df1: first dataframe
-# - df2: second dataframe
-# - count_column1: column to count in the first dataframe
-# - count_column2: column to count in the second dataframe
-# - where1: where clause for the first dataframe
-# - where2: where clause for the second dataframe
-# - return: Returns True if the count of the column is the same in both dataframes, False otherwise
 def validate_count(
     df1: pd.DataFrame,
     df2: pd.DataFrame,
@@ -118,6 +123,19 @@ def validate_count(
     where1: Optional[str] = None,
     where2: Optional[str] = None,
 ) -> bool:
+    """
+    Function to validate the count of a column in two dataframes
+    - Args:
+        - `df1`: first dataframe
+        - `df2`: second dataframe
+        - `count_column1`: column to count in the first dataframe
+        - `count_column2`: column to count in the second dataframe
+        - `where1`: where clause for the first dataframe
+        - `where2`: where clause for the second dataframe
+    - Returns:
+        - `True` if the count of the column is the same in both dataframes
+        - `False` otherwise
+    """
     if where1 is not None:
         df1 = df1.query(where1)
     if where2 is not None:
@@ -174,16 +192,22 @@ def validate_data_type(data_type: str, value: any, options):
             sys.exit(1)
 
 
-# Function to validate a string
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["min_length"]: Minimum length of the value
-#   - options["max_length"]: Maximum length of the value
-#   - options["allowed_values"]: List of allowed values
-#   - options["regex"]: Regular expression to match the value
-# - return: True if the value is valid, False otherwise
 def validate_string(value, options):
+    """
+    Function to validate a string
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: `True` if the value is required, `False` otherwise
+            - `options["min_value"]`: Minimum value of the value
+            - `options["max_value"]`: Maximum value of the value
+            - `options["allowed_values"]`: List of allowed values
+            - `options["regex"]`: Regular expression to match the value
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
+
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -199,14 +223,20 @@ def validate_string(value, options):
     return True
 
 
-# Function to validate an integer
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["min_value"]: Minimum value of the value
-#   - options["max_value"]: Maximum value of the value
-# - return: True if the value is valid, False otherwise
 def validate_integer(value, options):
+    """
+    Function to validate an integer
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: `True` if the value is required, `False` otherwise
+            - `options["min_value"]`: Minimum value of the value
+            - `options["max_value"]`: Maximum value of the value
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
+
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -222,15 +252,21 @@ def validate_integer(value, options):
     return True
 
 
-# Function to validate a float
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["min_value"]: Minimum value of the value
-#   - options["max_value"]: Maximum value of the value
-#   - options["precision"]: Precision of the value
-# - return: True if the value is valid, False otherwise
 def validate_float(value, options):
+    """
+    Function to validate a boolean
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: `True` if the value is required, `False` otherwise
+            - `options["min_value"]`: Minimum value of the value
+            - `options["max_value"]`: Maximum value of the value
+            - `options["precision"]`: Precision of the value
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
+
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -251,13 +287,19 @@ def validate_float(value, options):
     return True
 
 
-# Function to validate a boolean
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["allowed_values"]: List of allowed values (True, False)
-# - return: True if the value is valid, False otherwise
 def validate_boolean(value, options):
+    """
+    Function to validate a boolean
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: `True` if the value is required, `False` otherwise
+            - `options["allowed_values"]`: List of allowed values (`True`, `False`)
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
+
     allowed_values = [x == "True" for x in options["allowed_values"]]
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
@@ -268,15 +310,21 @@ def validate_boolean(value, options):
     return True
 
 
-# Function to validate a date, time or datetime
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["min_value"]: Minimum value of the value
-#   - options["max_value"]: Maximum value of the value
-#   - options["format"]: Format of the date
-# - return: True if the value is valid, False otherwise
 def validate_datetime(value, options):
+    """
+    Function to validate a date, time or datetime
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: True if the value is required, False otherwise
+            - `options["min_value"]`: Minimum value of the value
+            - `options["max_value"]`: Maximum value of the value
+            - `options["format"]`: Format of the date
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
+
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -298,15 +346,20 @@ def validate_datetime(value, options):
     return True
 
 
-# Function to validate an array
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-#   - options["min_length"]: Minimum length of the value
-#   - options["max_length"]: Maximum length of the value
-#   - options["allowed_values"]: List of allowed values
-# - return: True if the value is valid, False otherwise
 def validate_array(value, options):
+    """
+    Function to validate an array
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: True if the value is required, False otherwise
+            - `options["min_length"]`: Minimum length of the value
+            - `options["max_length"]`: Maximum length of the value
+            - `options["allowed_values"]`: List of allowed values
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -323,12 +376,17 @@ def validate_array(value, options):
     return True
 
 
-# Function to validate an object
-# - value: value to validate
-# - options: options to validate the data type
-#   - options["required"]: True if the value is required, False otherwise
-# - return: True if the value is valid, False otherwise
 def validate_object(value, options):
+    """Function to validate an object
+
+    - Args:
+        - `value`: value to validate
+        - `options`: options to validate the data type
+            - `options["required"]`: True if the value is required, False otherwise
+    - Returns:
+        - `True` if the value is valid
+        - `False` otherwise
+    """
     if (options["required"] == True and value == "") or (
         options["required"] == True and value is None
     ):
@@ -338,6 +396,18 @@ def validate_object(value, options):
 
 
 def check_required(column: dict, row: dict, index: int, errors: list) -> list:
+    """Check that required fields are present.
+
+    Checks that the required fields in the column are present in the row.
+
+    - Args:
+        - `column` (dict): The column schema.
+        - `row` (dict): The row.
+        - `index` (int): The index of the row in the file.
+        - `errors` (list): The list of errors to append to.
+    - Returns:
+        - `list`: The list of errors.
+    """
     if column["options"]["required"] == True and row[column["name"]] == "":
         errors.append(
             {
@@ -350,6 +420,17 @@ def check_required(column: dict, row: dict, index: int, errors: list) -> list:
 
 
 def check_data_type(column: dict, row: dict, index: int, errors: list) -> list:
+    """
+    Check that the data type of a given column matches the expected data type.
+
+    - Args:
+        - `column` (dict): The column schema.
+        - `row` (dict): The row.
+        - `index` (int): The index of the row in the file.
+        - `errors` (list): The list of errors to append to.
+    - Returns:
+        - `list`: The list of errors.
+    """
     if row[column["name"]] != "" and not validate_data_type(
         column["type"], row[column["name"]], column["options"]
     ):
