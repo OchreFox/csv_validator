@@ -4,16 +4,15 @@
 
 import sys
 import json
-import csv
+from typing import Optional
 import pandas as pd
-import numpy as np
 import re
 import configparser as cp
 from datetime import datetime
 
 
 # Function to read the schema file
-def read_schema_file(json_file):
+def read_schema_file(json_file: str) -> dict:
     try:
         with open(json_file) as schema_file:
             schema = json.load(schema_file)
@@ -24,13 +23,112 @@ def read_schema_file(json_file):
 
 
 # Function to read the CSV file
-def read_csv_file(csv_file):
+def read_csv_file(csv_file: str) -> pd.DataFrame:
     try:
         csv_data = pd.read_csv(csv_file)
         return csv_data
     except:
         print("Error: Unable to read CSV file")
         sys.exit(1)
+
+
+def read_parquet_file(parquet_file: str) -> pd.DataFrame:
+    try:
+        parquet_data = pd.read_parquet(parquet_file)
+        return parquet_data
+    except:
+        print("Error: Unable to read Parquet file")
+        sys.exit(1)
+
+
+# Function to join two dataframes
+# - df1: first dataframe
+# - df2: second dataframe
+# - join: type of join to perform
+# - join_columns: columns to join
+# - return: Returns the cross validated dataframe
+def join_dataframes(
+    df1: pd.DataFrame, df2: pd.DataFrame, join: str, join_columns: list
+) -> pd.DataFrame:
+    df1 = df1[join_columns]
+    df2 = df2[join_columns]
+    df = pd.merge(df1, df2, how=join, on=join_columns)
+    return df
+
+
+# Function to cross validate two dataframes
+# Mainly used to cross validate the data from the CSV file with the data from the database
+# It will perform a left anti join between the two dataframes and will return the rows that are not present in the database
+# - df1: first dataframe
+# - df2: second dataframe
+# - join_columns: columns to join
+# - return: Returns the cross validated dataframe
+def cross_validate_dataframes(df1: pd.DataFrame, df2: pd.DataFrame, join_columns: list):
+    df = join_dataframes(
+        df1,
+        df2,
+        join="leftanti",
+        join_columns=join_columns,
+    )
+    return df
+
+
+# Function to validate the sum of a column in two dataframes
+# - df1: first dataframe
+# - df2: second dataframe
+# - sum_column1: column to sum in the first dataframe
+# - sum_column2: column to sum in the second dataframe
+# - where1: where clause for the first dataframe
+# - where2: where clause for the second dataframe
+# - return: Returns True if the sum of the column is the same in both dataframes, False otherwise
+def validate_sum(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    sum_column1: str,
+    sum_column2: str,
+    where1: Optional[str] = None,
+    where2: Optional[str] = None,
+) -> bool:
+    if where1 is not None:
+        df1 = df1.query(where1)
+    if where2 is not None:
+        df2 = df2.query(where2)
+    sum1 = df1[sum_column1].sum()
+    sum2 = df2[sum_column2].sum()
+
+    print(f"Sum of {sum_column1} in df1: {sum1}")
+    print(f"Sum of {sum_column2} in df2: {sum2}")
+
+    return sum1 == sum2
+
+
+# Function to validate the count of a column in two dataframes
+# - df1: first dataframe
+# - df2: second dataframe
+# - count_column1: column to count in the first dataframe
+# - count_column2: column to count in the second dataframe
+# - where1: where clause for the first dataframe
+# - where2: where clause for the second dataframe
+# - return: Returns True if the count of the column is the same in both dataframes, False otherwise
+def validate_count(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    count_column1: str,
+    count_column2: str,
+    where1: Optional[str] = None,
+    where2: Optional[str] = None,
+) -> bool:
+    if where1 is not None:
+        df1 = df1.query(where1)
+    if where2 is not None:
+        df2 = df2.query(where2)
+    count1 = df1[count_column1].count()
+    count2 = df2[count_column2].count()
+
+    print(f"Count of {count_column1} in df1: {count1}")
+    print(f"Count of {count_column2} in df2: {count2}")
+
+    return count1 == count2
 
 
 # Function to validate a data type
@@ -55,7 +153,7 @@ def read_csv_file(csv_file):
 #   - datetime
 #   - array
 #   - object
-def validate_data_type(data_type, value, options):
+def validate_data_type(data_type: str, value: any, options):
     match data_type:
         case "string":
             return validate_string(value, options)
@@ -72,7 +170,7 @@ def validate_data_type(data_type, value, options):
         case "object":
             return validate_object(value, options)
         case _:
-            print("Error: Unknown data type: {data_type}")
+            print(f"Error: Unknown data type: {data_type}")
             sys.exit(1)
 
 
@@ -239,6 +337,32 @@ def validate_object(value, options):
         return True
 
 
+def check_required(column: dict, row: dict, index: int, errors: list) -> list:
+    if column["options"]["required"] == True and row[column["name"]] == "":
+        errors.append(
+            {
+                "row": index,
+                "column": column["name"],
+                "error": f"Error: Required column {column['name']} is empty",
+            }
+        )
+    return errors
+
+
+def check_data_type(column: dict, row: dict, index: int, errors: list) -> list:
+    if row[column["name"]] != "" and not validate_data_type(
+        column["type"], row[column["name"]], column["options"]
+    ):
+        errors.append(
+            {
+                "row": index,
+                "column": column["name"],
+                "error": f"Error: Invalid value {row[column['name']]} for column {column['name']}",
+            }
+        )
+    return errors
+
+
 # Main function
 def main():
     # Configuration
@@ -246,44 +370,68 @@ def main():
     config.read("config.ini")
     schema_file = config["DEFAULT"]["schema_file"]
     csv_file = config["DEFAULT"]["csv_file"]
+    parquet_file = config["DEFAULT"]["parquet_file"]
     report_file = config["DEFAULT"]["report_file"]
 
     # Read schema file
     schema = read_schema_file(schema_file)
-
-    # Read CSV file
     csv_data = read_csv_file(csv_file)
+    parquet_data = read_parquet_file(parquet_file)
 
     # Validate CSV file
     errors = []
     for index, row in csv_data.iterrows():
         for column in schema:
-            if column["options"]["required"] == True and row[column["name"]] == "":
-                errors.append(
-                    {
-                        "row": index,
-                        "column": column["name"],
-                        "error": f"Error: Required column {column['name']} is empty",
-                    }
-                )
-            if row[column["name"]] != "" and not validate_data_type(
-                column["type"], row[column["name"]], column["options"]
-            ):
-                errors.append(
-                    {
-                        "row": index,
-                        "column": column["name"],
-                        "error": f"Error: Invalid value {row[column['name']]} for column {column['name']}",
-                    }
-                )
+            errors = check_required(column, row, index, errors)
+            errors = check_data_type(column, row, index, errors)
+
+    # Validate sum
+    date_range = "date >= '2017-01-01' AND date <= '2017-12-31'"
+    if not validate_sum(
+        csv_data,
+        parquet_data,
+        "quantity",
+        "quantity",
+        where1=date_range,
+        where2=date_range,
+    ):
+        errors.append(
+            {
+                "row": "",
+                "column": "quantity",
+                "error": "Error: Sum of quantity is not the same in both dataframes",
+            }
+        )
+
+    # Validate count
+    if not validate_count(
+        csv_data,
+        parquet_data,
+        "quantity",
+        "quantity",
+        where1=date_range,
+        where2=date_range,
+    ):
+        errors.append(
+            {
+                "row": "",
+                "column": "quantity",
+                "error": "Error: Count of quantity is not the same in both dataframes",
+            }
+        )
 
     # Generate report
     if len(errors) > 0:
-        with open(report_file, "w") as report_file:
-            for error in errors:
-                report_file.write(
-                    f"Row: {error['row']}\t Column: {error['column']}\t\t{error['error']}\n"
-                )
+        try:
+            with open(report_file, "w") as report_file:
+                for error in errors:
+                    report_file.write(
+                        f"Row: {error['row']}\t Column: {error['column']}\t\t{error['error']}\n"
+                    )
+            print(f"Report generated in {report_file}")
+        except Exception as e:
+            print(f"Error: Unable to generate report file: {e}")
+            sys.exit(1)
     else:
         print("No errors found")
 
